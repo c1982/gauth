@@ -9,9 +9,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/user"
 	"path"
+	"strings"
 	"syscall"
+	"text/tabwriter"
 
 	"github.com/pcarrier/gauth/gauth"
 	"golang.org/x/crypto/ssh/terminal"
@@ -69,15 +72,18 @@ func main() {
 		log.Fatal(e)
 	}
 
-	currentTS, _ := gauth.IndexNow()
+	currentTS, progress := gauth.IndexNow()
 
+	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 1, ' ', 0)
+	fmt.Fprintln(tw, "\tprev\tcurr\tnext")
 	for _, record := range cfg {
-		_, secret := record[0], record[1]
-		_, curr, _, err := gauth.Codes(secret, currentTS)
+		name, secret := record[0], record[1]
+		prev, curr, next, err := gauth.Codes(secret, currentTS)
 		if err != nil {
 			log.Fatalf("Code: %v", err)
 		}
-		fmt.Println(curr)
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", name, prev, curr, next)
 	}
-
+	tw.Flush()
+	fmt.Printf("[%-29s]\n", strings.Repeat("=", progress))
 }
